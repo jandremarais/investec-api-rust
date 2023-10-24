@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 use reqwest::StatusCode;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -80,7 +80,7 @@ where
     let body: String = Deserialize::deserialize(deserializer)?;
     let array = body
         .split_whitespace()
-        .map(|o| Deserialize::deserialize(o)?)
+        .map(|o| Scope::from_str(o).unwrap())
         .collect();
     Ok(array)
 }
@@ -94,6 +94,22 @@ enum Scope {
     Beneficiarypayments,
     DocumentsStatements,
     DocumentsTaxcertificates,
+}
+impl FromStr for Scope {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "accounts" => Ok(Self::Accounts),
+            "balances" => Ok(Self::Balances),
+            "transactions" => Ok(Self::Transactions),
+            "transfers" => Ok(Self::Transfers),
+            "beneficiarypayments" => Ok(Self::Beneficiarypayments),
+            "documents.statements" => Ok(Self::DocumentsStatements),
+            "documents.taxcertificates" => Ok(Self::DocumentsTaxcertificates),
+            _ => Err(()),
+        }
+    }
 }
 
 #[cfg(test)]
