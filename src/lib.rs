@@ -31,10 +31,11 @@ impl Client {
         }
     }
 
-    pub async fn get_access_token(&self) -> Result<AccessToken, Error> {
+    /// Get access token
+    pub async fn get_access_token(&self) -> Result<AccessTokenResponse, Error> {
         let url = format!("{}/identity/v2/oauth2/token", self.host.url());
-        let params: HashMap<&str, &str> =
-            HashMap::from_iter([("grant_type", "client_credentials")]);
+        let mut params = HashMap::new();
+        params.insert("grant_type", "client_credentials");
         let resp = self
             .http_client
             .post(url)
@@ -44,9 +45,43 @@ impl Client {
             .send()
             .await?;
         let resp = resp.error_for_status()?;
-        let token: AccessToken = resp.json().await?;
-        dbg!(&token);
+        let token: AccessTokenResponse = resp.json().await?;
         Ok(token)
+    }
+
+    pub async fn authenticate(&mut self) -> Result<(), Error> {
+        if let Some(token) = &self.access_token {
+            if !token.expired() {
+                // still need to write to file
+                return Ok(());
+            }
+        }
+        // wont work in wasm
+        if let Ok(content) = std::fs::read_to_string("token.json") {
+            if let Ok(token) = serde_json::from_str::<AccessToken>(&content) {
+                if !token.expired() {
+                    self.access_token = Some(token);
+                    return Ok(());
+                }
+            }
+        }
+
+        let token_resp = self.get_access_token().await?;
+        let token = AccessToken {
+            access_token: token_resp.access_token,
+            token_type: token_resp.token_type,
+            expires_in: token_resp.expires_in,
+            expires_at: chrono::Utc::now()
+                + chrono::Duration::seconds(token_resp.expires_in as i64),
+            scope: token_resp.scope,
+        };
+        self.access_token = Some(token);
+
+
+        let mut file = std::fs::File::open()
+        let mut wtr = std::io::BufWriter::new(&fil;
+
+        Ok(())
     }
 }
 
@@ -65,12 +100,31 @@ impl Host {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct AccessToken {
+pub struct AccessTokenResponse {
     access_token: String,
     token_type: String,
     expires_in: u32,
     #[serde(deserialize_with = "from_space_separated")]
     scope: Vec<Scope>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct AccessToken {
+    access_token: String,
+    token_type: String,
+    expires_in: u32,
+    scope: Vec<Scope>,
+    expires_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl AccessToken {
+    fn expired(&self) -> bool {
+        if chrono::Utc::now() < self.expires_at {
+            false
+        } else {
+            true
+        }
+    }
 }
 
 fn from_space_separated<'de, D>(deserializer: D) -> Result<Vec<Scope>, D::Error>
