@@ -77,7 +77,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn get_accounts(&mut self) -> Result<AccountsResponse, Error> {
+    pub async fn get_accounts(&mut self) -> Result<InvestecRespone<Accounts>, Error> {
         if self.refresh_auth {
             self.authenticate().await?;
         }
@@ -88,18 +88,51 @@ impl Client {
         let data = resp.json().await?;
         Ok(data)
     }
+
+    pub async fn get_account_balnce(
+        &mut self,
+        account_id: &str,
+    ) -> Result<InvestecRespone<AccountBalance>, Error> {
+        if self.refresh_auth {
+            self.authenticate().await?;
+        }
+
+        let url = format!(
+            "{}/za/pb/v1/accounts/{}/balance",
+            self.host.url(),
+            account_id
+        );
+        let token = &self.access_token.as_ref().unwrap().access_token;
+
+        let resp = self.http_client.get(url).bearer_auth(token).send().await?;
+        let data = resp.json().await?;
+
+        Ok(data)
+    }
 }
 
 #[derive(Debug, Deserialize)]
-pub struct AccountsResponse {
-    pub data: AccountsResponseData,
+pub struct InvestecRespone<T> {
+    pub data: T,
     // TODO!: create struct
     pub links: serde_json::Value,
     pub meta: Meta,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct AccountsResponseData {
+#[serde(rename_all = "camelCase")]
+pub struct AccountBalance {
+    pub account_id: String,
+    pub current_balance: f32,
+    pub available_balance: f32,
+    pub budget_balance: f32,
+    pub straight_balance: f32,
+    pub cash_balance: f32,
+    pub currency: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Accounts {
     pub accounts: Vec<Account>,
 }
 
@@ -135,6 +168,22 @@ impl Display for Account {
             self.kyc_compliant,
             self.profile_id,
             self.profile_name
+        )
+    }
+}
+
+impl Display for AccountBalance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Account ID: {}\nCurrent Balance: {}\nAvailable Balance: {}\nBudget Balance: {}\nStraight Balance: {}\nCash Balance: {}\nCurrency: {}",
+            self.account_id,
+            self.current_balance,
+            self.available_balance,
+            self.budget_balance,
+            self.straight_balance,
+            self.cash_balance,
+            self.currency,
         )
     }
 }

@@ -18,8 +18,12 @@ async fn main() -> Result<(), investec::Error> {
 
     let accounts = client.get_accounts().await?;
     println!("Accounts:\n");
-    for a in accounts.data.accounts {
-        println!("{}\n", a);
+    for a in accounts.data.accounts.iter() {
+        println!("{}", a);
+        println!("---");
+        println!("Balance:");
+        let balance = client.get_account_balnce(&a.account_id).await?;
+        println!("{}\n", balance.data);
     }
 
     Ok(())
