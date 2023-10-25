@@ -8,29 +8,10 @@ pub enum Error {
 
     #[error("Token io error: {0}")]
     TokenIo(#[from] anyhow::Error),
+
+    #[error("Client field not defined: {field}")]
+    ClientFieldUndefined { field: String },
 }
 
 #[cfg(test)]
 mod tests;
-
-// pub struct ClientBuilder {
-//     id: Option<String>,
-//     secret: Option<String>,
-//     host: Option<Host>,
-//     access_token: Option<AccessToken>,
-// }
-// impl ClientBuilder {
-//     pub fn new() -> Self {
-//         Self {
-//             id: None,
-//             secret: None,
-//             host: Some(Host::Live),
-//             access_token: None,
-//         }
-//     }
-
-//     fn id(mut self, id: String) -> Self {
-//         self.id = Some(id);
-//         self
-//     }
-// }
