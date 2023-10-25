@@ -58,9 +58,12 @@ pub enum Scope {
     Transactions,
     Transfers,
     Beneficiarypayments,
-    DocumentsStatements,
-    DocumentsTaxcertificates,
+    Statements,
+    Taxcertificates,
+    Cards,
 }
+
+// TODO: is there a better way to deserialize this enum?
 impl FromStr for Scope {
     type Err = ();
 
@@ -71,8 +74,9 @@ impl FromStr for Scope {
             "transactions" => Ok(Self::Transactions),
             "transfers" => Ok(Self::Transfers),
             "beneficiarypayments" => Ok(Self::Beneficiarypayments),
-            "documents.statements" => Ok(Self::DocumentsStatements),
-            "documents.taxcertificates" => Ok(Self::DocumentsTaxcertificates),
+            "statements" => Ok(Self::Statements),
+            "taxcertificates" => Ok(Self::Taxcertificates),
+            "cards" => Ok(Self::Cards),
             _ => Err(()),
         }
     }

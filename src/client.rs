@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::Deserialize;
+
 use crate::{
     token::{AccessToken, AccessTokenResponse, FileStore, TokenStore},
     Error,
@@ -12,6 +14,7 @@ pub struct Client {
     pub host: Host,
     pub access_token: Option<AccessToken>,
     pub token_store: Option<Box<dyn TokenStore>>,
+    pub refresh_auth: bool,
     http_client: reqwest::Client,
 }
 
@@ -25,6 +28,7 @@ impl Client {
             host: Host::Sandbox,
             access_token: None,
             token_store: Some(Box::new(FileStore::default())),
+            refresh_auth: true,
             http_client: reqwest::Client::new(),
         }
     }
@@ -48,6 +52,8 @@ impl Client {
         Ok(token)
     }
 
+    /// exchange client credentials for access token if tokens in caches don't exist
+    /// or expired. Cache if new token is fetched.
     pub async fn authenticate(&mut self) -> Result<(), Error> {
         if let Some(token) = &self.access_token {
             if !token.expired() {
@@ -70,6 +76,50 @@ impl Client {
 
         Ok(())
     }
+
+    pub async fn get_accounts(&mut self) -> Result<AccountsResponse, Error> {
+        if self.refresh_auth {
+            self.authenticate().await?;
+        }
+
+        let url = format!("{}/za/pb/v1/accounts", self.host.url());
+        let token = &self.access_token.as_ref().unwrap().access_token;
+        let resp = self.http_client.get(url).bearer_auth(token).send().await?;
+        let data = resp.json().await?;
+        Ok(data)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AccountsResponse {
+    pub data: AccountsResponseData,
+    // TODO!: create struct
+    pub links: serde_json::Value,
+    pub meta: Meta,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AccountsResponseData {
+    pub accounts: Vec<Account>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Meta {
+    pub total_pages: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Account {
+    pub account_id: String,
+    pub account_number: String,
+    pub account_name: String,
+    pub reference_name: String,
+    pub product_name: String,
+    pub kyc_compliant: bool,
+    pub profile_id: String,
+    pub profile_name: String,
 }
 
 pub enum Host {
@@ -92,6 +142,7 @@ pub struct ClientBuilder {
     key: Option<String>,
     host: Option<Host>,
     token_store: Option<Box<dyn TokenStore>>,
+    refresh_auth: Option<bool>,
 }
 
 impl ClientBuilder {
@@ -102,6 +153,7 @@ impl ClientBuilder {
             key: None,
             host: None,
             token_store: None,
+            refresh_auth: None,
         }
     }
 
@@ -117,6 +169,7 @@ impl ClientBuilder {
             key,
             host: Some(Host::Live),
             token_store: None,
+            refresh_auth: None,
         }
     }
 
@@ -131,6 +184,8 @@ impl ClientBuilder {
             field: "key".to_string(),
         })?;
 
+        let refresh_auth = *&self.refresh_auth.unwrap_or(false);
+
         let host = self.host.unwrap_or(Host::Live);
         let client = Client {
             id,
@@ -139,6 +194,7 @@ impl ClientBuilder {
             host,
             access_token: None,
             token_store: self.token_store,
+            refresh_auth,
             http_client: reqwest::Client::new(),
         };
         Ok(client)
@@ -172,6 +228,11 @@ impl ClientBuilder {
     /// to set local file store for token
     pub fn local_token(mut self) -> Self {
         self.token_store = Some(Box::new(FileStore::default()));
+        self
+    }
+
+    pub fn refresh_auth(mut self) -> Self {
+        self.refresh_auth = Some(true);
         self
     }
 }
