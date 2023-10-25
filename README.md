@@ -40,12 +40,18 @@ Once the client is created, making request to the endpoints are simple.
 e.g. getting accounts:
 
 ```rust
-client.get_accounts().await?;
+let accounts_response: AccountsResponse = client.get_accounts().await?;
+```
+
+See [examples/basic.rs](examples/basic.rs) for a complete example.
+You can run it with:
+```sh
+cargo run --examples basic
 ```
 
 ## Roadmap
 
-- [@] implement the rest of the endpoints
+- [ ] implement the rest of the endpoints
 - [ ] full test coverage
 - [ ] publish on crates.io
 - [ ] wasm support
