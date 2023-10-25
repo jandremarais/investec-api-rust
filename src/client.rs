@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
-use serde::Deserialize;
+use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     token::{AccessToken, AccessTokenResponse, FileStore, TokenStore},
@@ -109,14 +110,101 @@ impl Client {
 
         Ok(data)
     }
+
+    pub async fn get_account_transactions(
+        &mut self,
+        account_id: &str,
+        from_date: Option<chrono::NaiveDate>,
+        to_date: Option<chrono::NaiveDate>,
+        transaction_type: Option<TransactionType>,
+    ) -> Result<InvestecRespone<Transactions>, Error> {
+        if self.refresh_auth {
+            self.authenticate().await?;
+        }
+
+        let url = format!(
+            "{}/za/pb/v1/accounts/{}/transactions",
+            self.host.url(),
+            account_id
+        );
+        let token = &self.access_token.as_ref().unwrap().access_token;
+        let resp = self
+            .http_client
+            .get(url)
+            .bearer_auth(token)
+            .query(&[("toDate", to_date), ("fromDate", from_date)])
+            .query(&[("transactionType", transaction_type)])
+            .send()
+            .await?;
+        let data = resp.json().await?;
+
+        Ok(data)
+    }
 }
 
 #[derive(Debug, Deserialize)]
 pub struct InvestecRespone<T> {
     pub data: T,
     // TODO!: create struct
-    pub links: serde_json::Value,
+    pub links: Links,
     pub meta: Meta,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Links {
+    #[serde(rename = "self")]
+    pub selfx: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum DtCt {
+    Debit,
+    Credit,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Transactions {
+    pub transactions: Vec<Transaction>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum TransactionStatus {
+    Posted,
+    // is this all
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+// #[serde(rename_all = "PascalCase")]
+pub enum TransactionType {
+    VASTransactions,
+    ATMWithdrawals,
+    CardPurchases,
+    FeesAndInterest,
+    Deposits,
+    OnlineBankingPayments,
+    DebitOrders,
+    FasterPay,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Transaction {
+    pub account_id: String,
+    #[serde(rename = "type")]
+    pub typex: DtCt,
+    pub transaction_type: TransactionType,
+    pub status: TransactionStatus,
+    pub description: String,
+    pub card_number: String,
+    pub posted_order: i32,
+    pub posting_date: NaiveDate,
+    pub value_date: NaiveDate,
+    pub action_date: NaiveDate,
+    pub transaction_date: NaiveDate,
+    pub amount: f32,
+    pub running_balance: f32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -125,9 +213,9 @@ pub struct AccountBalance {
     pub account_id: String,
     pub current_balance: f32,
     pub available_balance: f32,
-    pub budget_balance: f32,
-    pub straight_balance: f32,
-    pub cash_balance: f32,
+    pub budget_balance: Option<f32>,
+    pub straight_balance: Option<f32>,
+    pub cash_balance: Option<f32>,
     pub currency: String,
 }
 
@@ -180,9 +268,10 @@ impl Display for AccountBalance {
             self.account_id,
             self.current_balance,
             self.available_balance,
-            self.budget_balance,
-            self.straight_balance,
-            self.cash_balance,
+            // 0.0 probably confusing display
+            self.budget_balance.unwrap_or(0.0),
+            self.straight_balance.unwrap_or(0.0),
+            self.cash_balance.unwrap_or(0.0),
             self.currency,
         )
     }

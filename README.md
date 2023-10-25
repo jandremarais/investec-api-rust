@@ -1,7 +1,7 @@
 # investec-api-rust
 A rust client for [Investec APIs](https://developer.investec.com/za/api-products/documentation/SA_PB_Account_Information#section/Introduction).
 
-> Still WIP. Only oauth2 and get_accounts are implemented.
+> Still WIP. Only oauth2 and get_accounts, get_account_balance, get_account_transactions are implemented.
 
 The goal of this crate is to make it easy to call Investec APIs from Rust programs.
 
