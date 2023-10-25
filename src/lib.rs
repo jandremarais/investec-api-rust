@@ -1,25 +1,28 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
-use reqwest::StatusCode;
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Reqwest error: {0}")]
     Request(#[from] reqwest::Error),
+
+    #[error("Token io error: {0}")]
+    TokenIo(#[from] anyhow::Error),
 }
 
-pub struct Client {
+pub struct Client<T: TokenStore> {
     id: String,
     secret: String,
     key: String,
     host: Host,
     access_token: Option<AccessToken>,
+    token_store: Option<T>,
     http_client: reqwest::Client,
 }
 
-impl Client {
-    /// Create a client to the Investec Sandbox environment
+impl Client<FileStore> {
+    /// Create a client to the Investec Sandbox environment with a local token store
     pub fn sandbox() -> Self {
         Self {
             id: "yAxzQRFX97vOcyQAwluEU6H6ePxMA5eY".to_string(),
@@ -27,10 +30,12 @@ impl Client {
             key: "eUF4elFSRlg5N3ZPY3lRQXdsdUVVNkg2ZVB4TUE1ZVk6YVc1MlpYTjBaV010ZW1FdGNHSXRZV05qYjNWdWRITXRjMkZ1WkdKdmVBPT0=".to_string(),
             host: Host::Sandbox,
             access_token: None,
+            token_store: Some(FileStore::default()),
             http_client: reqwest::Client::new(),
         }
     }
-
+}
+impl<T: TokenStore> Client<T> {
     /// Get access token
     pub async fn get_access_token(&self) -> Result<AccessTokenResponse, Error> {
         let url = format!("{}/identity/v2/oauth2/token", self.host.url());
@@ -52,13 +57,10 @@ impl Client {
     pub async fn authenticate(&mut self) -> Result<(), Error> {
         if let Some(token) = &self.access_token {
             if !token.expired() {
-                // still need to write to file
                 return Ok(());
             }
-        }
-        // wont work in wasm
-        if let Ok(content) = std::fs::read_to_string("token.json") {
-            if let Ok(token) = serde_json::from_str::<AccessToken>(&content) {
+        } else if let Some(token_store) = &self.token_store {
+            if let Ok(token) = token_store.read() {
                 if !token.expired() {
                     self.access_token = Some(token);
                     return Ok(());
@@ -66,21 +68,47 @@ impl Client {
             }
         }
 
-        let token_resp = self.get_access_token().await?;
-        let token = AccessToken {
-            access_token: token_resp.access_token,
-            token_type: token_resp.token_type,
-            expires_in: token_resp.expires_in,
-            expires_at: chrono::Utc::now()
-                + chrono::Duration::seconds(token_resp.expires_in as i64),
-            scope: token_resp.scope,
-        };
+        let token = self.get_access_token().await?.into();
+        if let Some(token_store) = &self.token_store {
+            token_store.write(&token)?;
+        }
         self.access_token = Some(token);
 
+        Ok(())
+    }
+}
 
-        let mut file = std::fs::File::open()
-        let mut wtr = std::io::BufWriter::new(&fil;
+pub trait TokenStore {
+    fn read(&self) -> anyhow::Result<AccessToken>;
+    fn write(&self, token: &AccessToken) -> anyhow::Result<()>;
+}
 
+pub struct FileStore {
+    pub path: PathBuf,
+}
+
+impl FileStore {
+    pub fn new(path: PathBuf) -> Self {
+        Self { path }
+    }
+}
+
+impl Default for FileStore {
+    fn default() -> Self {
+        Self::new(PathBuf::from("token.json"))
+    }
+}
+
+impl TokenStore for FileStore {
+    fn read(&self) -> anyhow::Result<AccessToken> {
+        let body = std::fs::read_to_string(&self.path)?;
+        let token = serde_json::from_str(&body)?;
+        Ok(token)
+    }
+
+    fn write(&self, token: &AccessToken) -> anyhow::Result<()> {
+        let body = serde_json::to_string_pretty(token)?;
+        std::fs::write(&self.path, body)?;
         Ok(())
     }
 }
@@ -108,21 +136,27 @@ pub struct AccessTokenResponse {
     scope: Vec<Scope>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct AccessToken {
     access_token: String,
     token_type: String,
-    expires_in: u32,
     scope: Vec<Scope>,
     expires_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl AccessToken {
     fn expired(&self) -> bool {
-        if chrono::Utc::now() < self.expires_at {
-            false
-        } else {
-            true
+        chrono::Utc::now() >= self.expires_at
+    }
+}
+
+impl From<AccessTokenResponse> for AccessToken {
+    fn from(value: AccessTokenResponse) -> Self {
+        Self {
+            access_token: value.access_token,
+            token_type: value.token_type,
+            scope: value.scope,
+            expires_at: chrono::Utc::now() + chrono::Duration::seconds(value.expires_in as i64),
         }
     }
 }
@@ -139,7 +173,7 @@ where
     Ok(array)
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 enum Scope {
     Accounts,
     Balances,
