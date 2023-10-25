@@ -11,12 +11,13 @@ async fn main() -> Result<(), investec::Error> {
         .build()?;
 
     // for a client pointing to the sandbox environment
-    let mut client = Client::sandbox();
+    // let mut client = Client::sandbox();
 
     // uncomment below if not using .refresh_auto()
     // client.authenticate().await?;
 
     let accounts = client.get_accounts().await?;
+    println!("Accounts:\n");
     for a in accounts.data.accounts {
         println!("{}\n", a);
     }

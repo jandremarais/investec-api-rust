@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use serde::Deserialize;
 
@@ -120,6 +120,23 @@ pub struct Account {
     pub kyc_compliant: bool,
     pub profile_id: String,
     pub profile_name: String,
+}
+
+impl Display for Account {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Account ID: {}\nAccount Number: {}\nAccount Name: {}\nReference Name: {}\nProduct Name: {}\nKYC Compliant: {}\nProfile ID: {}\nProfile Name: {}",
+            self.account_id,
+            self.account_number,
+            self.account_name,
+            self.reference_name,
+            self.product_name,
+            self.kyc_compliant,
+            self.profile_id,
+            self.profile_name
+        )
+    }
 }
 
 pub enum Host {
