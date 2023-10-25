@@ -1,4 +1,4 @@
-use super::*;
+use crate::client::Client;
 
 #[tokio::test]
 async fn test_get_access_token() {
