@@ -78,7 +78,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn get_accounts(&mut self) -> Result<InvestecRespone<Accounts>, Error> {
+    pub async fn get_accounts(&mut self) -> Result<Response<Accounts>, Error> {
         if self.refresh_auth {
             self.authenticate().await?;
         }
@@ -99,7 +99,7 @@ impl Client {
     pub async fn get_account_balance(
         &mut self,
         account_id: &str,
-    ) -> Result<InvestecRespone<AccountBalance>, Error> {
+    ) -> Result<Response<AccountBalance>, Error> {
         if self.refresh_auth {
             self.authenticate().await?;
         }
@@ -129,7 +129,7 @@ impl Client {
         from_date: Option<chrono::NaiveDate>,
         to_date: Option<chrono::NaiveDate>,
         transaction_type: Option<TransactionType>,
-    ) -> Result<InvestecRespone<Transactions>, Error> {
+    ) -> Result<Response<Transactions>, Error> {
         if self.refresh_auth {
             self.authenticate().await?;
         }
@@ -154,7 +154,7 @@ impl Client {
         Ok(data)
     }
 
-    pub async fn get_profiles(&mut self) -> Result<InvestecRespone<Vec<Profile>>, Error> {
+    pub async fn get_profiles(&mut self) -> Result<Response<Vec<Profile>>, Error> {
         if self.refresh_auth {
             self.authenticate().await?;
         }
@@ -176,7 +176,7 @@ impl Client {
     pub async fn get_profile_accounts(
         &mut self,
         profile_id: &str,
-    ) -> Result<InvestecRespone<Vec<Account>>, Error> {
+    ) -> Result<Response<Vec<Account>>, Error> {
         if self.refresh_auth {
             self.authenticate().await?;
         }
@@ -198,6 +198,14 @@ impl Client {
         let data = resp.json().await?;
         Ok(data)
     }
+
+    pub async fn get_auth_setup_details(
+        &mut self,
+        profile_id: &str,
+        account_id: &str,
+    ) -> Result<Response<serde_json::Value>, Error> {
+        todo!()
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -209,7 +217,7 @@ pub struct Profile {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct InvestecRespone<T> {
+pub struct Response<T> {
     pub data: T,
     // TODO!: create struct
     pub links: Links,
