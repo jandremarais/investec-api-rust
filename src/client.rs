@@ -257,14 +257,156 @@ impl Client {
     pub async fn transfer_multiple(
         &mut self,
         account_id: &str,
-    ) -> Result<Response<serde_json::Value>, Error> {
+        request: MultiTransferRequest,
+    ) -> Result<Response<MultiTransferResonse>, Error> {
         let url = format!(
             "{}/za/pb/v1/accounts/{}/transfermultiple",
             self.host.url(),
             account_id
         );
+        let resp = self
+            .default_request(Method::POST, url)
+            .await?
+            .json(&request)
+            .send()
+            .await?;
+        let resp = error_for_status_with_text(resp).await?;
 
-        todo!()
+        let data = resp.json().await?;
+        Ok(data)
+    }
+
+    pub async fn transfer_single(
+        &mut self,
+        account_id: &str,
+        request: TransferRequest,
+        profile_id: Option<&str>,
+    ) -> Result<Response<MultiTransferResonse>, Error> {
+        let req = MultiTransferRequest::new(vec![request], profile_id);
+        self.transfer_multiple(account_id, req).await
+    }
+}
+
+async fn error_for_status_with_text(resp: reqwest::Response) -> Result<reqwest::Response, Error> {
+    let status = resp.status();
+    if status.is_client_error() || status.is_server_error() {
+        let body = resp.text().await?;
+        Err(Error::CustomRequest(body))
+    } else {
+        Ok(resp)
+    }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct MultiTransferResonse {
+    pub error_message: Option<String>,
+    pub transfer_responses: Vec<TransferResponse>,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct TransferResponse {
+    pub authorisation_required: bool,
+    pub beneficiary_account_id: String,
+    pub beneficiary_name: String,
+    #[serde(deserialize_with = "from_custom_date")]
+    pub payment_date: NaiveDate,
+    pub payment_reference_number: String,
+    pub status: String,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MultiTransferRequest {
+    pub transfer_list: Vec<TransferRequest>,
+    pub profile_id: Option<String>,
+}
+
+impl MultiTransferRequest {
+    pub fn new(transfer_list: Vec<TransferRequest>, profile_id: Option<&str>) -> Self {
+        Self {
+            transfer_list,
+            profile_id: profile_id.map(|s| s.to_string()),
+        }
+    }
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct TransferRequest {
+    pub beneficiary_account_id: String,
+    pub amount: String,
+    pub my_reference: String,
+    pub their_reference: String,
+}
+
+pub struct TransferBuilder {
+    pub beneficiary_account_id: Option<String>,
+    pub amount: Option<f32>,
+    pub my_reference: Option<String>,
+    pub their_reference: Option<String>,
+}
+
+impl TransferBuilder {
+    pub fn new() -> Self {
+        Self {
+            beneficiary_account_id: None,
+            amount: None,
+            my_reference: None,
+            their_reference: None,
+        }
+    }
+
+    pub fn build(self) -> Result<TransferRequest, Error> {
+        let beneficiary_account_id =
+            self.beneficiary_account_id
+                .ok_or(Error::TransferRquestFieldUndefined {
+                    field: "beneficiary_acocunt_id".to_string(),
+                })?;
+        let amount = self
+            .amount
+            .ok_or(Error::TransferRquestFieldUndefined {
+                field: "amount".to_string(),
+            })?
+            .to_string();
+        let my_reference = self
+            .my_reference
+            .ok_or(Error::TransferRquestFieldUndefined {
+                field: "my_reference".to_string(),
+            })?;
+        let their_reference = self
+            .their_reference
+            .ok_or(Error::TransferRquestFieldUndefined {
+                field: "their_reference".to_string(),
+            })?;
+        let req = TransferRequest {
+            beneficiary_account_id,
+            amount,
+            my_reference,
+            their_reference,
+        };
+        Ok(req)
+    }
+
+    pub fn beneficiary_account_id(mut self, account_id: &str) -> Self {
+        self.beneficiary_account_id = Some(account_id.to_string());
+        self
+    }
+
+    pub fn amount(mut self, amount: f32) -> Self {
+        self.amount = Some(amount);
+        self
+    }
+
+    pub fn my_reference(mut self, reference: &str) -> Self {
+        self.my_reference = Some(reference.to_string());
+        self
+    }
+
+    pub fn their_reference(mut self, reference: &str) -> Self {
+        self.their_reference = Some(reference.to_string());
+        self
     }
 }
 
@@ -278,7 +420,7 @@ pub struct Beneficiary {
     pub beneficiary_name: Option<String>,
     #[serde(deserialize_with = "from_custom_amount")]
     pub last_payment_amount: Option<f32>,
-    #[serde(deserialize_with = "from_custom_date")]
+    #[serde(deserialize_with = "from_custom_optional_date")]
     pub last_payment_date: Option<NaiveDate>,
     pub cell_no: Option<String>,
     pub email_address: Option<String>,
@@ -290,7 +432,7 @@ pub struct Beneficiary {
     pub faster_payment_allowed: Option<bool>,
 }
 
-fn from_custom_date<'de, D>(deserializer: D) -> Result<Option<NaiveDate>, D::Error>
+fn from_custom_optional_date<'de, D>(deserializer: D) -> Result<Option<NaiveDate>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -304,6 +446,15 @@ where
     } else {
         Ok(None)
     }
+}
+
+fn from_custom_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    let dt = NaiveDate::parse_from_str(&s, "%d/%m/%Y").map_err(serde::de::Error::custom)?;
+    Ok(dt)
 }
 
 fn from_custom_amount<'de, D>(deserializer: D) -> Result<Option<f32>, D::Error>

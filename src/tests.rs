@@ -1,6 +1,8 @@
 use chrono::NaiveDate;
 
-use crate::client::{Beneficiary, Client, TransactionType};
+use crate::client::{
+    Beneficiary, Client, MultiTransferRequest, TransactionType, TransferBuilder, TransferRequest,
+};
 
 #[tokio::test]
 async fn test_get_access_token() {
@@ -126,5 +128,51 @@ async fn test_get_profile_beneficiaries() {
 async fn test_get_beneficiaries() {
     let mut client = Client::sandbox();
     let resp = client.get_beneficiaries().await;
+    assert!(resp.is_ok());
+}
+
+#[tokio::test]
+async fn test_transfer_multiple() {
+    let mut client = Client::sandbox();
+    let transfer1 = TransferBuilder::new()
+        .beneficiary_account_id(SANDBOX_ACCOUNT)
+        .amount(10.0)
+        .my_reference("test")
+        .their_reference("test theirs")
+        .build()
+        .unwrap();
+    let transfer2 = TransferBuilder::new()
+        .beneficiary_account_id(SANDBOX_ACCOUNT)
+        .amount(1.0)
+        .my_reference("test2")
+        .their_reference("test2 theirs")
+        .build()
+        .unwrap();
+    let req = MultiTransferRequest::new(vec![transfer1, transfer2], None);
+    let resp = client.transfer_multiple(SANDBOX_ACCOUNT, req).await;
+    // if let Err(e) = resp {
+    //     dbg!(e);
+    // }
+    assert!(resp.is_ok());
+}
+
+#[tokio::test]
+async fn test_transfer_single() {
+    // wait 2 seconds to avoid hitting burst limits
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    let mut client = Client::sandbox();
+    let transfer = TransferBuilder::new()
+        .beneficiary_account_id(SANDBOX_ACCOUNT)
+        .amount(10.0)
+        .my_reference("test")
+        .their_reference("test theirs")
+        .build()
+        .unwrap();
+    let resp = client
+        .transfer_single(SANDBOX_ACCOUNT, transfer, None)
+        .await;
+    // if let Err(e) = resp {
+    //     dbg!(e);
+    // }
     assert!(resp.is_ok());
 }

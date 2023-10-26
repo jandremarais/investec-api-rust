@@ -12,8 +12,14 @@ pub enum Error {
     #[error("Client field not defined: {field}")]
     ClientFieldUndefined { field: String },
 
+    #[error("TransferRequest field not defined: {field}")]
+    TransferRquestFieldUndefined { field: String },
+
     #[error("Access Token not set")]
     NoAccessToken,
+
+    #[error("Request error: {0}")]
+    CustomRequest(String),
 }
 
 #[cfg(test)]

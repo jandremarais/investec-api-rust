@@ -1,7 +1,7 @@
 # investec-api-rust
 A rust client for [Investec APIs](https://developer.investec.com/za/api-products/documentation/SA_PB_Account_Information#section/Introduction).
 
-> Still WIP. Only oauth2 and the endpoints in the Account Information class are implemented.
+> WIP. See Roadmap below.
 
 The goal of this crate is to make it easy to call Investec APIs from Rust programs.
 
@@ -62,8 +62,14 @@ cargo run --examples basic
 
 ## Roadmap
 
-- [ ] implement the rest of the endpoints
-- [ ] full test coverage
+- [x] implement account info endpoints
+- [x] implement inter account transfers
+- [x] add basic example
+- [x] basic documentation
+- [ ] implement beneficiary payments endpoints
+- [ ] implement document endpoints
+- [ ] add example for account transfer
+- [ ] add example for beneficary payments
+- [ ] better error management and test coverage for errors
 - [ ] publish on crates.io
 - [ ] wasm support
-- [ ] better error management
