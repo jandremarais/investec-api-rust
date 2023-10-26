@@ -78,17 +78,23 @@ impl Client {
         Ok(())
     }
 
-    pub async fn get_accounts(&mut self) -> Result<Response<Accounts>, Error> {
+    /// helper function to reduce repetitve code for autorefresh and http client setup
+    async fn default_get(&mut self, url: String) -> Result<reqwest::RequestBuilder, Error> {
         if self.refresh_auth {
             self.authenticate().await?;
         }
-
-        let url = format!("{}/za/pb/v1/accounts", self.host.url());
+        // TODO: handle this error
         let token = &self.access_token.as_ref().unwrap().access_token;
+
+        let resp = self.http_client.get(url).bearer_auth(token);
+        Ok(resp)
+    }
+
+    pub async fn get_accounts(&mut self) -> Result<Response<Accounts>, Error> {
+        let url = format!("{}/za/pb/v1/accounts", self.host.url());
         let resp = self
-            .http_client
-            .get(url)
-            .bearer_auth(token)
+            .default_get(url)
+            .await?
             .send()
             .await?
             .error_for_status()?;
@@ -100,21 +106,15 @@ impl Client {
         &mut self,
         account_id: &str,
     ) -> Result<Response<AccountBalance>, Error> {
-        if self.refresh_auth {
-            self.authenticate().await?;
-        }
-
         let url = format!(
             "{}/za/pb/v1/accounts/{}/balance",
             self.host.url(),
             account_id
         );
-        let token = &self.access_token.as_ref().unwrap().access_token;
 
         let resp = self
-            .http_client
-            .get(url)
-            .bearer_auth(token)
+            .default_get(url)
+            .await?
             .send()
             .await?
             .error_for_status()?;
@@ -130,20 +130,14 @@ impl Client {
         to_date: Option<chrono::NaiveDate>,
         transaction_type: Option<TransactionType>,
     ) -> Result<Response<Transactions>, Error> {
-        if self.refresh_auth {
-            self.authenticate().await?;
-        }
-
         let url = format!(
             "{}/za/pb/v1/accounts/{}/transactions",
             self.host.url(),
             account_id
         );
-        let token = &self.access_token.as_ref().unwrap().access_token;
         let resp = self
-            .http_client
-            .get(url)
-            .bearer_auth(token)
+            .default_get(url)
+            .await?
             .query(&[("toDate", to_date), ("fromDate", from_date)])
             .query(&[("transactionType", transaction_type)])
             .send()
@@ -155,16 +149,10 @@ impl Client {
     }
 
     pub async fn get_profiles(&mut self) -> Result<Response<Vec<Profile>>, Error> {
-        if self.refresh_auth {
-            self.authenticate().await?;
-        }
-
         let url = format!("{}/za/pb/v1/profiles", self.host.url(),);
-        let token = &self.access_token.as_ref().unwrap().access_token;
         let resp = self
-            .http_client
-            .get(url)
-            .bearer_auth(token)
+            .default_get(url)
+            .await?
             .send()
             .await?
             .error_for_status()?;
@@ -177,20 +165,14 @@ impl Client {
         &mut self,
         profile_id: &str,
     ) -> Result<Response<Vec<Account>>, Error> {
-        if self.refresh_auth {
-            self.authenticate().await?;
-        }
-
         let url = format!(
             "{}/za/pb/v1/profiles/{}/accounts",
             self.host.url(),
             profile_id
         );
-        let token = &self.access_token.as_ref().unwrap().access_token;
         let resp = self
-            .http_client
-            .get(url)
-            .bearer_auth(token)
+            .default_get(url)
+            .await?
             .send()
             .await?
             .error_for_status()?;
@@ -206,21 +188,15 @@ impl Client {
         profile_id: &str,
         account_id: &str,
     ) -> Result<Response<serde_json::Value>, Error> {
-        if self.refresh_auth {
-            self.authenticate().await?;
-        }
-
         let url = format!(
             "{}/za/pb/v1/profiles/{}/accounts/{}/authorisationsetupdetails",
             self.host.url(),
             profile_id,
             account_id
         );
-        let token = &self.access_token.as_ref().unwrap().access_token;
         let resp = self
-            .http_client
-            .get(url)
-            .bearer_auth(token)
+            .default_get(url)
+            .await?
             .send()
             .await?
             .error_for_status()?;
@@ -235,21 +211,16 @@ impl Client {
         profile_id: &str,
         account_id: &str,
     ) -> Result<Response<Vec<Beneficiary>>, Error> {
-        if self.refresh_auth {
-            self.authenticate().await?;
-        }
-
         let url = format!(
             "{}/za/pb/v1/profiles/{}/beneficiaries/{}",
             self.host.url(),
             profile_id,
             account_id
         );
-        let token = &self.access_token.as_ref().unwrap().access_token;
+
         let resp = self
-            .http_client
-            .get(url)
-            .bearer_auth(token)
+            .default_get(url)
+            .await?
             .send()
             .await?
             .error_for_status()?;
@@ -260,16 +231,10 @@ impl Client {
 
     pub async fn get_beneficiaries(&mut self) -> Result<Response<Vec<Beneficiary>>, Error> {
         // pub async fn get_beneficiaries(&mut self) -> Result<Response<serde_json::Value>, Error> {
-        if self.refresh_auth {
-            self.authenticate().await?;
-        }
-
         let url = format!("{}/za/pb/v1/accounts/beneficiaries", self.host.url(),);
-        let token = &self.access_token.as_ref().unwrap().access_token;
         let resp = self
-            .http_client
-            .get(url)
-            .bearer_auth(token)
+            .default_get(url)
+            .await?
             .send()
             .await?
             .error_for_status()?;
