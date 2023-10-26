@@ -21,9 +21,10 @@ async fn main() -> Result<(), investec::Error> {
 
     let accounts = client.get_accounts().await?;
     println!("Accounts:\n");
-    let from_date = NaiveDate::from_ymd_opt(2023, 10, 1).unwrap();
-    let to_date = NaiveDate::from_ymd_opt(2023, 10, 3).unwrap();
+    let from_date = NaiveDate::from_ymd_opt(2023, 10, 1);
+    let to_date = NaiveDate::from_ymd_opt(2023, 10, 3);
     let t_type = TransactionType::CardPurchases;
+
     for a in accounts.data.accounts.iter().take(1) {
         println!("{}", a);
         println!("---");
@@ -32,7 +33,7 @@ async fn main() -> Result<(), investec::Error> {
         println!("{}\n", balance.data);
 
         let transactions = client
-            .get_account_transactions(&a.account_id, Some(from_date), Some(to_date), Some(t_type))
+            .get_account_transactions(&a.account_id, from_date, to_date, Some(t_type))
             .await?;
 
         dbg!(transactions);

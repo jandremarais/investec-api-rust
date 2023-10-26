@@ -36,14 +36,25 @@ If you want the client to point to the sandbox environment:
 let client = Client::sandbox();
 ```
 
-Once the client is created, making request to the endpoints are simple.
+Once the client is created, making requests to the endpoints are simple.
 e.g. getting accounts:
 
 ```rust
-let accounts_response: AccountsResponse = client.get_accounts().await?;
+let accounts = client.get_accounts().await?;
 ```
 
-See [examples/basic.rs](examples/basic.rs) for a complete example.
+or getting account transactions:
+
+```rust
+let from_date = NaiveDate::from_ymd_opt(2023, 10, 1);
+let to_date = NaiveDate::from_ymd_opt(2023, 10, 3);
+let t_type = TransactionType::CardPurchases;
+let transactions = client
+    .get_account_transactions("1234", from_date, to_date, Some(t_type))
+    .await?;
+```
+
+See [examples/basic.rs](examples/basic.rs) for an end-to-end example.
 You can run it with:
 ```sh
 cargo run --examples basic
