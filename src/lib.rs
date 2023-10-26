@@ -11,6 +11,9 @@ pub enum Error {
 
     #[error("Client field not defined: {field}")]
     ClientFieldUndefined { field: String },
+
+    #[error("Access Token not set")]
+    NoAccessToken,
 }
 
 #[cfg(test)]

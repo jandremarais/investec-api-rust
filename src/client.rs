@@ -83,11 +83,13 @@ impl Client {
         if self.refresh_auth {
             self.authenticate().await?;
         }
-        // TODO: handle this error
-        let token = &self.access_token.as_ref().unwrap().access_token;
-
-        let resp = self.http_client.get(url).bearer_auth(token);
-        Ok(resp)
+        match &self.access_token {
+            Some(token) => {
+                let resp = self.http_client.get(url).bearer_auth(&token.access_token);
+                Ok(resp)
+            }
+            None => Err(Error::NoAccessToken),
+        }
     }
 
     pub async fn get_accounts(&mut self) -> Result<Response<Accounts>, Error> {
