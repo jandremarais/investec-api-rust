@@ -243,40 +243,6 @@ pub struct Account {
     pub profile_name: String,
 }
 
-impl Display for Account {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Account ID: {}\nAccount Number: {}\nAccount Name: {}\nReference Name: {}\nProduct Name: {}\nKYC Compliant: {}\nProfile ID: {}\nProfile Name: {}",
-            self.account_id,
-            self.account_number,
-            self.account_name,
-            self.reference_name,
-            self.product_name,
-            self.kyc_compliant,
-            self.profile_id,
-            self.profile_name
-        )
-    }
-}
-
-impl Display for AccountBalance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Account ID: {}\nCurrent Balance: {}\nAvailable Balance: {}\nBudget Balance: {}\nStraight Balance: {}\nCash Balance: {}\nCurrency: {}",
-            self.account_id,
-            self.current_balance,
-            self.available_balance,
-            // 0.0 probably confusing display
-            self.budget_balance.unwrap_or(0.0),
-            self.straight_balance.unwrap_or(0.0),
-            self.cash_balance.unwrap_or(0.0),
-            self.currency,
-        )
-    }
-}
-
 pub enum Host {
     Live,
     Sandbox,

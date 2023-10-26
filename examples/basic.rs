@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use chrono::NaiveDate;
 use investec::client::{Client, ClientBuilder, TransactionType};
 
@@ -20,23 +18,27 @@ async fn main() -> Result<(), investec::Error> {
     // client.authenticate().await?;
 
     let accounts = client.get_accounts().await?;
-    println!("Accounts:\n");
+
+    // query parameters for get transactions
     let from_date = NaiveDate::from_ymd_opt(2023, 10, 1);
     let to_date = NaiveDate::from_ymd_opt(2023, 10, 3);
     let t_type = TransactionType::CardPurchases;
 
+    println!("Accounts:\n");
     for a in accounts.data.accounts.iter().take(1) {
-        println!("{}", a);
+        println!("{:#?}", a);
         println!("---");
         println!("Balance:");
         let balance = client.get_account_balnce(&a.account_id).await?;
-        println!("{}\n", balance.data);
+        println!("{:#?}\n", balance.data);
 
         let transactions = client
             .get_account_transactions(&a.account_id, from_date, to_date, Some(t_type))
             .await?;
 
-        dbg!(transactions);
+        for t in transactions.data.transactions {
+            println!("{:#?}", t);
+        }
     }
 
     Ok(())
