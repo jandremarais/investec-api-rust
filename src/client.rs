@@ -1,7 +1,7 @@
-use std::{collections::HashMap, fmt::Display};
+use std::collections::HashMap;
 
 use chrono::NaiveDate;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{
     token::{AccessToken, AccessTokenResponse, FileStore, TokenStore},
@@ -199,12 +199,137 @@ impl Client {
         Ok(data)
     }
 
+    // TODO!: define struct for response data
+    // not sure what all the possiblities are yet
     pub async fn get_auth_setup_details(
         &mut self,
         profile_id: &str,
         account_id: &str,
     ) -> Result<Response<serde_json::Value>, Error> {
-        todo!()
+        if self.refresh_auth {
+            self.authenticate().await?;
+        }
+
+        let url = format!(
+            "{}/za/pb/v1/profiles/{}/accounts/{}/authorisationsetupdetails",
+            self.host.url(),
+            profile_id,
+            account_id
+        );
+        let token = &self.access_token.as_ref().unwrap().access_token;
+        let resp = self
+            .http_client
+            .get(url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let data = resp.json().await?;
+        Ok(data)
+    }
+
+    // TODO!: figure out why this is returning 404
+    pub async fn get_profile_beneficiaries(
+        &mut self,
+        profile_id: &str,
+        account_id: &str,
+    ) -> Result<Response<Vec<Beneficiary>>, Error> {
+        if self.refresh_auth {
+            self.authenticate().await?;
+        }
+
+        let url = format!(
+            "{}/za/pb/v1/profiles/{}/beneficiaries/{}",
+            self.host.url(),
+            profile_id,
+            account_id
+        );
+        let token = &self.access_token.as_ref().unwrap().access_token;
+        let resp = self
+            .http_client
+            .get(url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let data = resp.json().await?;
+        Ok(data)
+    }
+
+    pub async fn get_beneficiaries(&mut self) -> Result<Response<Vec<Beneficiary>>, Error> {
+        // pub async fn get_beneficiaries(&mut self) -> Result<Response<serde_json::Value>, Error> {
+        if self.refresh_auth {
+            self.authenticate().await?;
+        }
+
+        let url = format!("{}/za/pb/v1/accounts/beneficiaries", self.host.url(),);
+        let token = &self.access_token.as_ref().unwrap().access_token;
+        let resp = self
+            .http_client
+            .get(url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let data = resp.json().await?;
+        Ok(data)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Beneficiary {
+    pub beneficiary_id: String,
+    pub account_number: String,
+    pub code: String,
+    pub bank: String,
+    pub beneficiary_name: Option<String>,
+    #[serde(deserialize_with = "from_custom_amount")]
+    pub last_payment_amount: Option<f32>,
+    #[serde(deserialize_with = "from_custom_date")]
+    pub last_payment_date: Option<NaiveDate>,
+    pub cell_no: Option<String>,
+    pub email_address: Option<String>,
+    pub name: String,
+    pub reference_account_number: String,
+    pub reference_name: Option<String>,
+    pub category_id: String,
+    pub profile_id: String,
+    pub faster_payment_allowed: Option<bool>,
+}
+
+fn from_custom_date<'de, D>(deserializer: D) -> Result<Option<NaiveDate>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Deserialize::deserialize(deserializer)?;
+    if let Some(s) = s {
+        if let Ok(dt) = NaiveDate::parse_from_str(&s, "%d/%m/%Y") {
+            Ok(Some(dt))
+        } else {
+            Ok(None)
+        }
+    } else {
+        Ok(None)
+    }
+}
+
+fn from_custom_amount<'de, D>(deserializer: D) -> Result<Option<f32>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: Option<String> = Deserialize::deserialize(deserializer)?;
+    if let Some(s) = s {
+        if let Ok(amount) = s.parse::<f32>() {
+            Ok(Some(amount))
+        } else {
+            Ok(None)
+        }
+    } else {
+        Ok(None)
     }
 }
 

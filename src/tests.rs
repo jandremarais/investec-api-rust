@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-use crate::client::{Client, TransactionType};
+use crate::client::{Beneficiary, Client, TransactionType};
 
 #[tokio::test]
 async fn test_get_access_token() {
@@ -38,7 +38,8 @@ async fn test_authenticate() {
     assert_ne!(token1.access_token, token4.access_token);
 }
 
-const SANBOX_ACCOUNT: &'static str = "3353431574710163189587446";
+const SANDBOX_ACCOUNT: &'static str = "3353431574710163189587446";
+const SANDBOX_PROFILE: &'static str = "10163189587444";
 
 #[tokio::test]
 async fn test_get_accounts() {
@@ -50,7 +51,7 @@ async fn test_get_accounts() {
 #[tokio::test]
 async fn test_get_account_balance() {
     let mut client = Client::sandbox();
-    let balance = client.get_account_balance(SANBOX_ACCOUNT).await;
+    let balance = client.get_account_balance(SANDBOX_ACCOUNT).await;
     assert!(balance.is_ok());
 }
 
@@ -62,7 +63,7 @@ async fn test_get_account_transactions() {
     let to_date = NaiveDate::from_ymd_opt(2023, 10, 3);
     let t_type = TransactionType::CardPurchases;
     let transactions = client
-        .get_account_transactions(SANBOX_ACCOUNT, from_date, to_date, Some(t_type))
+        .get_account_transactions(SANDBOX_ACCOUNT, from_date, to_date, Some(t_type))
         .await;
     assert!(transactions.is_ok());
     let transactions = transactions.unwrap();
@@ -85,12 +86,45 @@ async fn test_get_profiles() {
 #[tokio::test]
 async fn test_get_profile_accounts() {
     let mut client = Client::sandbox();
-    let p_id = "10163189587444";
-    let resp = client.get_profile_accounts(p_id).await;
+    let resp = client.get_profile_accounts(SANDBOX_PROFILE).await;
     assert!(resp.is_ok());
     let resp = resp.unwrap();
     assert!(resp.data.len() > 0);
     for a in resp.data {
-        assert_eq!(a.profile_id, p_id)
+        assert_eq!(a.profile_id, SANDBOX_PROFILE)
     }
+}
+
+#[tokio::test]
+async fn test_get_auth_setup_details() {
+    let mut client = Client::sandbox();
+    let resp = client
+        .get_auth_setup_details(SANDBOX_PROFILE, SANDBOX_ACCOUNT)
+        .await;
+    assert!(resp.is_ok());
+}
+
+// this is failing!
+#[tokio::test]
+async fn test_get_profile_beneficiaries() {
+    let mut client = Client::sandbox();
+
+    // let p_accounts = client.get_profile_accounts("10182035050680").await.unwrap();
+    // dbg!(p_accounts);
+    let resp = client
+        .get_profile_beneficiaries(SANDBOX_PROFILE, SANDBOX_ACCOUNT)
+        // .get_profile_beneficiaries("10182035050680", "3882638263210182035137740")
+        .await;
+    // match resp {
+    //     Ok(r) => {}
+    //     Err(e) => println!("{e}"),
+    // }
+    assert!(resp.is_ok());
+}
+
+#[tokio::test]
+async fn test_get_beneficiaries() {
+    let mut client = Client::sandbox();
+    let resp = client.get_beneficiaries().await;
+    assert!(resp.is_ok());
 }

@@ -12,7 +12,7 @@ async fn main() -> Result<(), investec::Error> {
         .build()?;
 
     // for a client pointing to the sandbox environment
-    let mut client = Client::sandbox();
+    // let mut client = Client::sandbox();
 
     // uncomment below if not using .refresh_auto()
     // client.authenticate().await?;
