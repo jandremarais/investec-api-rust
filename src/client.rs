@@ -193,7 +193,7 @@ pub enum TransactionType {
 pub struct Transaction {
     pub account_id: String,
     #[serde(rename = "type")]
-    pub typex: DtCt,
+    pub type_: DtCt,
     pub transaction_type: TransactionType,
     pub status: TransactionStatus,
     pub description: String,
