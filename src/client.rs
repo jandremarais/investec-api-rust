@@ -153,7 +153,7 @@ pub struct InvestecRespone<T> {
 #[derive(Debug, Deserialize)]
 pub struct Links {
     #[serde(rename = "self")]
-    pub selfx: String,
+    pub self_: String,
 }
 
 #[derive(Debug, Deserialize)]
