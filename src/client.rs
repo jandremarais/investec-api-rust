@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::NaiveDate;
+use reqwest::Method;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{
@@ -79,13 +80,22 @@ impl Client {
     }
 
     /// helper function to reduce repetitve code for autorefresh and http client setup
-    async fn default_get(&mut self, url: String) -> Result<reqwest::RequestBuilder, Error> {
+    // async fn default_get(&mut self, url: String) -> Result<reqwest::RequestBuilder, Error> {
+    async fn default_request(
+        &mut self,
+        method: Method,
+        url: String,
+    ) -> Result<reqwest::RequestBuilder, Error> {
         if self.refresh_auth {
             self.authenticate().await?;
         }
         match &self.access_token {
             Some(token) => {
-                let resp = self.http_client.get(url).bearer_auth(&token.access_token);
+                let resp = self
+                    .http_client
+                    .request(method, url)
+                    .bearer_auth(&token.access_token);
+                // let resp = self.http_client.get(url).bearer_auth(&token.access_token);
                 Ok(resp)
             }
             None => Err(Error::NoAccessToken),
@@ -95,7 +105,7 @@ impl Client {
     pub async fn get_accounts(&mut self) -> Result<Response<Accounts>, Error> {
         let url = format!("{}/za/pb/v1/accounts", self.host.url());
         let resp = self
-            .default_get(url)
+            .default_request(Method::GET, url)
             .await?
             .send()
             .await?
@@ -115,7 +125,7 @@ impl Client {
         );
 
         let resp = self
-            .default_get(url)
+            .default_request(Method::GET, url)
             .await?
             .send()
             .await?
@@ -138,7 +148,7 @@ impl Client {
             account_id
         );
         let resp = self
-            .default_get(url)
+            .default_request(Method::GET, url)
             .await?
             .query(&[("toDate", to_date), ("fromDate", from_date)])
             .query(&[("transactionType", transaction_type)])
@@ -153,7 +163,7 @@ impl Client {
     pub async fn get_profiles(&mut self) -> Result<Response<Vec<Profile>>, Error> {
         let url = format!("{}/za/pb/v1/profiles", self.host.url(),);
         let resp = self
-            .default_get(url)
+            .default_request(Method::GET, url)
             .await?
             .send()
             .await?
@@ -173,7 +183,7 @@ impl Client {
             profile_id
         );
         let resp = self
-            .default_get(url)
+            .default_request(Method::GET, url)
             .await?
             .send()
             .await?
@@ -197,7 +207,7 @@ impl Client {
             account_id
         );
         let resp = self
-            .default_get(url)
+            .default_request(Method::GET, url)
             .await?
             .send()
             .await?
@@ -221,7 +231,7 @@ impl Client {
         );
 
         let resp = self
-            .default_get(url)
+            .default_request(Method::GET, url)
             .await?
             .send()
             .await?
@@ -232,10 +242,9 @@ impl Client {
     }
 
     pub async fn get_beneficiaries(&mut self) -> Result<Response<Vec<Beneficiary>>, Error> {
-        // pub async fn get_beneficiaries(&mut self) -> Result<Response<serde_json::Value>, Error> {
         let url = format!("{}/za/pb/v1/accounts/beneficiaries", self.host.url(),);
         let resp = self
-            .default_get(url)
+            .default_request(Method::GET, url)
             .await?
             .send()
             .await?
@@ -243,6 +252,19 @@ impl Client {
 
         let data = resp.json().await?;
         Ok(data)
+    }
+
+    pub async fn transfer_multiple(
+        &mut self,
+        account_id: &str,
+    ) -> Result<Response<serde_json::Value>, Error> {
+        let url = format!(
+            "{}/za/pb/v1/accounts/{}/transfermultiple",
+            self.host.url(),
+            account_id
+        );
+
+        todo!()
     }
 }
 
