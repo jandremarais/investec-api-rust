@@ -65,8 +65,10 @@ async fn test_get_account_transactions() {
         .get_account_transactions(SANBOX_ACCOUNT, from_date, to_date, Some(t_type))
         .await;
     assert!(transactions.is_ok());
+    let transactions = transactions.unwrap();
+    assert!(transactions.data.transactions.len() > 0);
 
-    for t in transactions.unwrap().data.transactions {
+    for t in transactions.data.transactions {
         assert_eq!(t.transaction_type, t_type);
         assert!(t.transaction_date <= to_date.unwrap());
         assert!(t.transaction_date >= from_date.unwrap());
@@ -78,4 +80,17 @@ async fn test_get_profiles() {
     let mut client = Client::sandbox();
     let profiles = client.get_profiles().await;
     assert!(profiles.is_ok());
+}
+
+#[tokio::test]
+async fn test_get_profile_accounts() {
+    let mut client = Client::sandbox();
+    let p_id = "10163189587444";
+    let resp = client.get_profile_accounts(p_id).await;
+    assert!(resp.is_ok());
+    let resp = resp.unwrap();
+    assert!(resp.data.len() > 0);
+    for a in resp.data {
+        assert_eq!(a.profile_id, p_id)
+    }
 }

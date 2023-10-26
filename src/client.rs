@@ -172,6 +172,32 @@ impl Client {
         let data = resp.json().await?;
         Ok(data)
     }
+
+    pub async fn get_profile_accounts(
+        &mut self,
+        profile_id: &str,
+    ) -> Result<InvestecRespone<Vec<Account>>, Error> {
+        if self.refresh_auth {
+            self.authenticate().await?;
+        }
+
+        let url = format!(
+            "{}/za/pb/v1/profiles/{}/accounts",
+            self.host.url(),
+            profile_id
+        );
+        let token = &self.access_token.as_ref().unwrap().access_token;
+        let resp = self
+            .http_client
+            .get(url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let data = resp.json().await?;
+        Ok(data)
+    }
 }
 
 #[derive(Debug, Deserialize)]
