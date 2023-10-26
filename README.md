@@ -5,6 +5,13 @@ A rust client for [Investec APIs](https://developer.investec.com/za/api-products
 
 The goal of this crate is to make it easy to call Investec APIs from Rust programs.
 
+## Installation
+
+Add the crate to your Cargo project:
+```sh
+cargo add --git https://github.com/jandremarais/investec-api-rust
+```
+
 ## Usage
 
 Create the client by reading the client_id, client_secret and api_key from environment variables and authenitcate to get an access token:
