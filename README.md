@@ -66,3 +66,4 @@ cargo run --examples basic
 - [ ] full test coverage
 - [ ] publish on crates.io
 - [ ] wasm support
+- [ ] better error management

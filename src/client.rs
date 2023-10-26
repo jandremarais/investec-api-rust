@@ -85,12 +85,18 @@ impl Client {
 
         let url = format!("{}/za/pb/v1/accounts", self.host.url());
         let token = &self.access_token.as_ref().unwrap().access_token;
-        let resp = self.http_client.get(url).bearer_auth(token).send().await?;
+        let resp = self
+            .http_client
+            .get(url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
         let data = resp.json().await?;
         Ok(data)
     }
 
-    pub async fn get_account_balnce(
+    pub async fn get_account_balance(
         &mut self,
         account_id: &str,
     ) -> Result<InvestecRespone<AccountBalance>, Error> {
@@ -105,7 +111,13 @@ impl Client {
         );
         let token = &self.access_token.as_ref().unwrap().access_token;
 
-        let resp = self.http_client.get(url).bearer_auth(token).send().await?;
+        let resp = self
+            .http_client
+            .get(url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
         let data = resp.json().await?;
 
         Ok(data)
@@ -135,11 +147,39 @@ impl Client {
             .query(&[("toDate", to_date), ("fromDate", from_date)])
             .query(&[("transactionType", transaction_type)])
             .send()
-            .await?;
+            .await?
+            .error_for_status()?;
         let data = resp.json().await?;
 
         Ok(data)
     }
+
+    pub async fn get_profiles(&mut self) -> Result<InvestecRespone<Vec<Profile>>, Error> {
+        if self.refresh_auth {
+            self.authenticate().await?;
+        }
+
+        let url = format!("{}/za/pb/v1/profiles", self.host.url(),);
+        let token = &self.access_token.as_ref().unwrap().access_token;
+        let resp = self
+            .http_client
+            .get(url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let data = resp.json().await?;
+        Ok(data)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Profile {
+    pub profile_id: String,
+    pub profile_name: String,
+    pub default_profile: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -175,8 +215,7 @@ pub enum TransactionStatus {
     // is this all
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-// #[serde(rename_all = "PascalCase")]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 pub enum TransactionType {
     VASTransactions,
     ATMWithdrawals,

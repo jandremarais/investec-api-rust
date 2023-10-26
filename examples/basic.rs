@@ -12,7 +12,7 @@ async fn main() -> Result<(), investec::Error> {
         .build()?;
 
     // for a client pointing to the sandbox environment
-    // let mut client = Client::sandbox();
+    let mut client = Client::sandbox();
 
     // uncomment below if not using .refresh_auto()
     // client.authenticate().await?;
@@ -29,7 +29,7 @@ async fn main() -> Result<(), investec::Error> {
         println!("{:#?}", a);
         println!("---");
         println!("Balance:");
-        let balance = client.get_account_balnce(&a.account_id).await?;
+        let balance = client.get_account_balance(&a.account_id).await?;
         println!("{:#?}\n", balance.data);
 
         let transactions = client
