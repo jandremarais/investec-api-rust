@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::NaiveDate;
 use reqwest::Method;
 use serde::Serialize;
 
@@ -119,12 +120,12 @@ impl Client {
 
     pub async fn get_account_balance(
         &mut self,
-        account_id: &str,
+        account_id: impl Into<String>,
     ) -> Result<Response<AccountBalance>, Error> {
         let url = format!(
             "{}/za/pb/v1/accounts/{}/balance",
             self.host.url(),
-            account_id
+            account_id.into()
         );
 
         let resp = self
@@ -140,15 +141,15 @@ impl Client {
 
     pub async fn get_account_transactions(
         &mut self,
-        account_id: &str,
-        from_date: Option<chrono::NaiveDate>,
-        to_date: Option<chrono::NaiveDate>,
+        account_id: impl Into<String>,
+        from_date: Option<NaiveDate>,
+        to_date: Option<NaiveDate>,
         transaction_type: Option<TransactionType>,
     ) -> Result<Response<Transactions>, Error> {
         let url = format!(
             "{}/za/pb/v1/accounts/{}/transactions",
             self.host.url(),
-            account_id
+            account_id.into()
         );
         let resp = self
             .default_request(Method::GET, url)
@@ -178,12 +179,12 @@ impl Client {
 
     pub async fn get_profile_accounts(
         &mut self,
-        profile_id: &str,
+        profile_id: impl Into<String>,
     ) -> Result<Response<Vec<Account>>, Error> {
         let url = format!(
             "{}/za/pb/v1/profiles/{}/accounts",
             self.host.url(),
-            profile_id
+            profile_id.into()
         );
         let resp = self
             .default_request(Method::GET, url)
@@ -200,14 +201,14 @@ impl Client {
     // not sure what all the possiblities are yet
     pub async fn get_auth_setup_details(
         &mut self,
-        profile_id: &str,
-        account_id: &str,
+        profile_id: impl Into<String>,
+        account_id: impl Into<String>,
     ) -> Result<Response<serde_json::Value>, Error> {
         let url = format!(
             "{}/za/pb/v1/profiles/{}/accounts/{}/authorisationsetupdetails",
             self.host.url(),
-            profile_id,
-            account_id
+            profile_id.into(),
+            account_id.into()
         );
         let resp = self
             .default_request(Method::GET, url)
@@ -223,14 +224,14 @@ impl Client {
     // TODO!: figure out why this is returning 404
     pub async fn get_profile_beneficiaries(
         &mut self,
-        profile_id: &str,
-        account_id: &str,
+        profile_id: impl Into<String>,
+        account_id: impl Into<String>,
     ) -> Result<Response<Vec<Beneficiary>>, Error> {
         let url = format!(
             "{}/za/pb/v1/profiles/{}/beneficiaries/{}",
             self.host.url(),
-            profile_id,
-            account_id
+            profile_id.into(),
+            account_id.into()
         );
 
         let resp = self
