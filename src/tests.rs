@@ -180,8 +180,12 @@ async fn test_transfer_single() {
     let resp = client
         .transfer_single(SANDBOX_ACCOUNT, transfer, None)
         .await;
-    // if let Err(e) = resp {
-    //     dbg!(e);
-    // }
     assert!(resp.is_ok());
+}
+
+#[tokio::test]
+async fn test_get_beneficiary_categories() {
+    let mut client = Client::sandbox();
+    let resp = client.get_beneficiary_categories().await;
+    assert!(resp.is_ok_and(|d| d.data.len() > 0))
 }

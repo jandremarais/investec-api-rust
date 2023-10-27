@@ -285,6 +285,19 @@ impl Client {
         let req = MultiTransferRequest::new(vec![request], profile_id);
         self.transfer_multiple(account_id, req).await
     }
+
+    pub async fn get_beneficiary_categories(
+        &mut self,
+    ) -> Result<Response<Vec<BeneficiaryCategory>>, Error> {
+        let url = format!(
+            "{}/za/pb/v1/accounts/beneficiarycategories",
+            self.host.url()
+        );
+        let resp = self.default_request(Method::GET, url).await?.send().await?;
+        let resp = error_for_status_with_text(resp).await?;
+        let data = resp.json().await?;
+        Ok(data)
+    }
 }
 
 async fn error_for_status_with_text(resp: reqwest::Response) -> Result<reqwest::Response, Error> {
@@ -295,6 +308,15 @@ async fn error_for_status_with_text(resp: reqwest::Response) -> Result<reqwest::
     } else {
         Ok(resp)
     }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct BeneficiaryCategory {
+    pub category_id: String,
+    #[serde(deserialize_with = "bool_from_string")]
+    pub default_category: bool,
+    pub category_name: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -456,6 +478,15 @@ where
     let s: String = Deserialize::deserialize(deserializer)?;
     let dt = NaiveDate::parse_from_str(&s, "%d/%m/%Y").map_err(serde::de::Error::custom)?;
     Ok(dt)
+}
+
+fn bool_from_string<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: String = Deserialize::deserialize(deserializer)?;
+    let b = s.parse().map_err(serde::de::Error::custom)?;
+    Ok(b)
 }
 
 fn from_custom_amount<'de, D>(deserializer: D) -> Result<Option<f32>, D::Error>
