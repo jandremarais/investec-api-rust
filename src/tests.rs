@@ -1,7 +1,8 @@
 use chrono::NaiveDate;
 
 use crate::{
-    client::{Client, MultiTransferRequest, MutliPaymentRequest, Payment, TransferBuilder},
+    client::Client,
+    request::{MultiTransferRequest, MutliPaymentRequest, Payment, TransferBuilder},
     response::TransactionType,
 };
 
@@ -162,9 +163,6 @@ async fn test_transfer_multiple() {
         .unwrap();
     let req = MultiTransferRequest::new(vec![transfer1, transfer2], None);
     let resp = client.transfer_multiple(SANDBOX_ACCOUNT, req).await;
-    // if let Err(e) = resp {
-    //     dbg!(e);
-    // }
     assert!(resp.is_ok());
 }
 
@@ -207,8 +205,6 @@ async fn test_pay_multiple() {
     let resp = client
         .pay_multiple(SANDBOX_ACCOUNT, MutliPaymentRequest::new(vec![payment]))
         .await;
-    match resp {
-        Ok(d) => println!("{:#?}", d),
-        Err(e) => println!("{:#?}", e),
-    };
+    assert!(resp.is_ok());
+    assert!(resp.unwrap().data.transfer_responses.len() > 0);
 }
