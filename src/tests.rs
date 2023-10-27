@@ -1,6 +1,9 @@
 use chrono::NaiveDate;
 
-use crate::client::{Client, MultiTransferRequest, TransactionType, TransferBuilder};
+use crate::{
+    client::{Client, MultiTransferRequest, TransferBuilder},
+    response::TransactionType,
+};
 
 #[tokio::test]
 async fn test_get_access_token() {

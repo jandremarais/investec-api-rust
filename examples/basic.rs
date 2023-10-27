@@ -1,5 +1,8 @@
 use chrono::NaiveDate;
-use investec::client::{Client, ClientBuilder, TransactionType};
+use investec::{
+    client::{Client, ClientBuilder},
+    response::TransactionType,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), investec::Error> {
