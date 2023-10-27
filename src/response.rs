@@ -3,9 +3,16 @@ use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
-pub struct MultiPaymentResonse {
+pub struct MultiPaymentResponse {
     pub error_message: Option<String>,
     pub transfer_responses: Vec<PaymentResponse>,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct SinglePaymentResponse {
+    pub error_message: Option<String>,
+    pub transfer_response: PaymentResponse,
 }
 
 #[derive(Deserialize, Debug)]

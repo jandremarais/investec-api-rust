@@ -2,13 +2,13 @@ use std::collections::HashMap;
 
 use chrono::NaiveDate;
 use reqwest::Method;
-use serde::Serialize;
 
 use crate::{
-    request::{MultiTransferRequest, MutliPaymentRequest, TransferRequest},
+    request::{MultiTransferRequest, MutliPaymentRequest, Payment, TransferRequest},
     response::{
-        Account, AccountBalance, Accounts, Beneficiary, BeneficiaryCategory, MultiPaymentResonse,
-        MultiTransferResonse, Profile, Response, TransactionType, Transactions,
+        Account, AccountBalance, Accounts, Beneficiary, BeneficiaryCategory, MultiPaymentResponse,
+        MultiTransferResonse, Profile, Response, SinglePaymentResponse, TransactionType,
+        Transactions,
     },
     token::{AccessToken, AccessTokenResponse, FileStore, TokenStore},
     Error,
@@ -308,7 +308,7 @@ impl Client {
         &mut self,
         account_id: impl Into<String>,
         payment_list: MutliPaymentRequest,
-    ) -> Result<Response<MultiPaymentResonse>, Error> {
+    ) -> Result<Response<MultiPaymentResponse>, Error> {
         let url = format!(
             "{}/za/pb/v1/accounts/{}/paymultiple",
             self.host.url(),
@@ -323,6 +323,22 @@ impl Client {
         // TODO! handle specific api errors
         let resp = error_for_status_with_text(resp).await?;
         let data = resp.json().await?;
+        Ok(data)
+    }
+
+    pub async fn pay_single(
+        &mut self,
+        account_id: impl Into<String>,
+        payment: Payment,
+    ) -> Result<SinglePaymentResponse, Error> {
+        let multi = self
+            .pay_multiple(account_id, MutliPaymentRequest::new(vec![payment]))
+            .await?;
+        let transfer_response = multi.data.transfer_responses.into_iter().next().unwrap();
+        let data = SinglePaymentResponse {
+            error_message: multi.data.error_message,
+            transfer_response,
+        };
         Ok(data)
     }
 }
