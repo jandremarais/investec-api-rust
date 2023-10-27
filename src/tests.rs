@@ -205,3 +205,18 @@ async fn test_pay_multiple() {
     assert!(resp.is_ok());
     assert!(resp.unwrap().data.transfer_responses.len() > 0);
 }
+
+#[tokio::test]
+async fn test_pay_single() {
+    let mut client = Client::sandbox();
+    let bens = client.get_beneficiaries().await.unwrap();
+    let ben = bens.data.last().unwrap();
+    let payment = Payment::to(&ben.beneficiary_id)
+        .amount(1.0)
+        .my_reference("test me")
+        .their_reference("test them")
+        .build()
+        .unwrap();
+    let resp = client.pay_single(SANDBOX_ACCOUNT, payment).await;
+    assert!(resp.is_ok());
+}

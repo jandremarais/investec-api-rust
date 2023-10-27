@@ -24,14 +24,14 @@ INVESTEC_API_KEY=
 ```
 
 ```rust
-let mut client = ClientBuilder::from_env().build()?;
+let mut client = Client::from_env().build()?;
 client.authenticate()?;
 ````
 
 To enable auto refresh of the access tokens and caching to local file system, create the client as follows:
 
 ```rust
-let client = ClientBuilder::from_env()
+let client = Client::from_env()
     .local_token()
     .refresh_auth()
     .build()?;
@@ -61,6 +61,19 @@ let transactions = client
     .await?;
 ```
 
+or paying beneficiary:
+
+```rust
+let beneficiary_id = "1234";
+let my_account_id = "4321";
+let payment = Payment::to(beneficiary_id)
+    .amount(1.0)
+    .my_reference("test me")
+    .their_reference("test them")
+    .build()?;
+let response = client.pay_single(my_account_id, payment).await?;
+```
+
 See [examples/basic.rs](examples/basic.rs) for an end-to-end example.
 You can run it with:
 ```sh
@@ -73,7 +86,7 @@ cargo run --examples basic
 - [x] implement inter account transfers
 - [x] add basic example
 - [x] basic documentation
-- [ ] implement beneficiary payments endpoints
+- [x] implement beneficiary payments endpoints
 - [ ] implement document endpoints
 - [ ] add example for account transfer
 - [ ] add example for beneficary payments
