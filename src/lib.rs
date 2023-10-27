@@ -14,7 +14,10 @@ pub enum Error {
     ClientFieldUndefined { field: String },
 
     #[error("TransferRequest field not defined: {field}")]
-    TransferRquestFieldUndefined { field: String },
+    TransferRequestFieldUndefined { field: String },
+
+    #[error("Payment field not defined: {field}")]
+    PaymentFieldUndefined { field: String },
 
     #[error("Access Token not set")]
     NoAccessToken,

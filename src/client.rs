@@ -5,8 +5,8 @@ use serde::Serialize;
 
 use crate::{
     response::{
-        Account, AccountBalance, Accounts, Beneficiary, BeneficiaryCategory, MultiTransferResonse,
-        Profile, Response, TransactionType, Transactions,
+        Account, AccountBalance, Accounts, Beneficiary, BeneficiaryCategory, MultiPaymentResonse,
+        MultiTransferResonse, Profile, Response, TransactionType, Transactions,
     },
     token::{AccessToken, AccessTokenResponse, FileStore, TokenStore},
     Error,
@@ -259,18 +259,18 @@ impl Client {
 
     pub async fn transfer_multiple(
         &mut self,
-        account_id: &str,
-        request: MultiTransferRequest,
+        account_id: impl Into<String>,
+        transfer_list: MultiTransferRequest,
     ) -> Result<Response<MultiTransferResonse>, Error> {
         let url = format!(
             "{}/za/pb/v1/accounts/{}/transfermultiple",
             self.host.url(),
-            account_id
+            account_id.into()
         );
         let resp = self
             .default_request(Method::POST, url)
             .await?
-            .json(&request)
+            .json(&transfer_list)
             .send()
             .await?;
         let resp = error_for_status_with_text(resp).await?;
@@ -281,7 +281,7 @@ impl Client {
 
     pub async fn transfer_single(
         &mut self,
-        account_id: &str,
+        account_id: impl Into<String>,
         request: TransferRequest,
         profile_id: Option<&str>,
     ) -> Result<Response<MultiTransferResonse>, Error> {
@@ -301,6 +301,28 @@ impl Client {
         let data = resp.json().await?;
         Ok(data)
     }
+
+    pub async fn pay_multiple(
+        &mut self,
+        account_id: impl Into<String>,
+        payment_list: MutliPaymentRequest,
+    ) -> Result<Response<MultiPaymentResonse>, Error> {
+        let url = format!(
+            "{}/za/pb/v1/accounts/{}/paymultiple",
+            self.host.url(),
+            account_id.into()
+        );
+        let resp = self
+            .default_request(Method::POST, url)
+            .await?
+            .json(&payment_list)
+            .send()
+            .await?;
+        // TODO! handle specific api errors
+        let resp = error_for_status_with_text(resp).await?;
+        let data = resp.json().await?;
+        Ok(data)
+    }
 }
 
 async fn error_for_status_with_text(resp: reqwest::Response) -> Result<reqwest::Response, Error> {
@@ -310,6 +332,113 @@ async fn error_for_status_with_text(resp: reqwest::Response) -> Result<reqwest::
         Err(Error::CustomRequest(body))
     } else {
         Ok(resp)
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MutliPaymentRequest {
+    pub payment_list: Vec<Payment>,
+}
+
+impl MutliPaymentRequest {
+    pub fn new(payment_list: Vec<Payment>) -> Self {
+        Self { payment_list }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Payment {
+    beneficiary_id: String,
+    amount: String,
+    my_reference: String,
+    their_reference: String,
+    authoriser_a_id: Option<String>,
+    authoriser_b_id: Option<String>,
+    auth_period_id: Option<String>,
+    faster_payment: Option<bool>,
+}
+
+pub struct PaymentBuilder {
+    beneficiary_id: String,
+    amount: Option<String>,
+    my_reference: Option<String>,
+    their_reference: Option<String>,
+    authoriser_a_id: Option<String>,
+    authoriser_b_id: Option<String>,
+    auth_period_id: Option<String>,
+    faster_payment: Option<bool>,
+}
+
+impl Payment {
+    pub fn to(beneficiary_id: impl Into<String>) -> PaymentBuilder {
+        PaymentBuilder {
+            beneficiary_id: beneficiary_id.into(),
+            amount: None,
+            my_reference: None,
+            their_reference: None,
+            authoriser_a_id: None,
+            authoriser_b_id: None,
+            auth_period_id: None,
+            faster_payment: None,
+        }
+    }
+}
+
+impl PaymentBuilder {
+    pub fn build(self) -> Result<Payment, Error> {
+        let beneficiary_id = self.beneficiary_id;
+        let amount = self.amount.ok_or(Error::PaymentFieldUndefined {
+            field: "amount".to_string(),
+        })?;
+        let my_reference = self.my_reference.ok_or(Error::PaymentFieldUndefined {
+            field: "my_reference".to_string(),
+        })?;
+        let their_reference = self.their_reference.ok_or(Error::PaymentFieldUndefined {
+            field: "their_reference".to_string(),
+        })?;
+
+        let payment = Payment {
+            beneficiary_id,
+            amount,
+            my_reference,
+            their_reference,
+            authoriser_a_id: self.authoriser_a_id,
+            authoriser_b_id: self.authoriser_b_id,
+            auth_period_id: self.auth_period_id,
+            faster_payment: self.faster_payment,
+        };
+        Ok(payment)
+    }
+
+    pub fn amount(mut self, amount: f32) -> Self {
+        self.amount = Some(amount.to_string());
+        self
+    }
+    pub fn my_reference(mut self, refernce: impl Into<String>) -> Self {
+        self.my_reference = Some(refernce.into());
+        self
+    }
+    pub fn their_reference(mut self, refernce: impl Into<String>) -> Self {
+        self.their_reference = Some(refernce.into());
+        self
+    }
+    pub fn authoriser_a_id(mut self, id: impl Into<String>) -> Self {
+        self.authoriser_a_id = Some(id.into());
+        self
+    }
+    pub fn authoriser_b_id(mut self, id: impl Into<String>) -> Self {
+        self.authoriser_b_id = Some(id.into());
+        self
+    }
+    pub fn auth_period_id(mut self, id: impl Into<String>) -> Self {
+        self.auth_period_id = Some(id.into());
+        self
+    }
+    pub fn faster_payment(mut self) -> Self {
+        self.faster_payment = Some(true);
+        self
     }
 }
 
@@ -358,23 +487,23 @@ impl TransferBuilder {
     pub fn build(self) -> Result<TransferRequest, Error> {
         let beneficiary_account_id =
             self.beneficiary_account_id
-                .ok_or(Error::TransferRquestFieldUndefined {
+                .ok_or(Error::TransferRequestFieldUndefined {
                     field: "beneficiary_acocunt_id".to_string(),
                 })?;
         let amount = self
             .amount
-            .ok_or(Error::TransferRquestFieldUndefined {
+            .ok_or(Error::TransferRequestFieldUndefined {
                 field: "amount".to_string(),
             })?
             .to_string();
         let my_reference = self
             .my_reference
-            .ok_or(Error::TransferRquestFieldUndefined {
+            .ok_or(Error::TransferRequestFieldUndefined {
                 field: "my_reference".to_string(),
             })?;
         let their_reference = self
             .their_reference
-            .ok_or(Error::TransferRquestFieldUndefined {
+            .ok_or(Error::TransferRequestFieldUndefined {
                 field: "their_reference".to_string(),
             })?;
         let req = TransferRequest {

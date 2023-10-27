@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 
 use crate::{
-    client::{Client, MultiTransferRequest, TransferBuilder},
+    client::{Client, MultiTransferRequest, MutliPaymentRequest, Payment, TransferBuilder},
     response::TransactionType,
 };
 
@@ -191,4 +191,24 @@ async fn test_get_beneficiary_categories() {
     let mut client = Client::sandbox();
     let resp = client.get_beneficiary_categories().await;
     assert!(resp.is_ok_and(|d| d.data.len() > 0))
+}
+
+#[tokio::test]
+async fn test_pay_multiple() {
+    let mut client = Client::sandbox();
+    let bens = client.get_beneficiaries().await.unwrap();
+    let ben = bens.data.first().unwrap();
+    let payment = Payment::to(&ben.beneficiary_id)
+        .amount(1.0)
+        .my_reference("test me")
+        .their_reference("test them")
+        .build()
+        .unwrap();
+    let resp = client
+        .pay_multiple(SANDBOX_ACCOUNT, MutliPaymentRequest::new(vec![payment]))
+        .await;
+    match resp {
+        Ok(d) => println!("{:#?}", d),
+        Err(e) => println!("{:#?}", e),
+    };
 }
