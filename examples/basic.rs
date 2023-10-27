@@ -1,13 +1,10 @@
 use chrono::NaiveDate;
-use investec::{
-    client::{Client, ClientBuilder},
-    response::TransactionType,
-};
+use investec::{client::Client, response::TransactionType};
 
 #[tokio::main]
 async fn main() -> Result<(), investec::Error> {
     // load credentials from env
-    let mut client = ClientBuilder::from_env()
+    let mut client = Client::from_env()
         // save a copy of the token locally as a cache
         .local_token()
         // automatically refresh tokens if expired or non-existent

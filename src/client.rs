@@ -39,8 +39,22 @@ impl Client {
             http_client: reqwest::Client::new(),
         }
     }
-}
-impl Client {
+    /// read id, secret and key from environment varialbles
+    pub fn from_env() -> ClientBuilder {
+        let id = Some(std::env::var("INVESTEC_CLIENT_ID").expect("INVESTEC_CLIENT_ID"));
+        let secret = Some(std::env::var("INVESTEC_CLIENT_SECRET").expect("INVESTEC_CLIENT_SECRET"));
+        let key = Some(std::env::var("INVESTEC_API_KEY").expect("INVESTEC_API_KEY"));
+
+        ClientBuilder {
+            id,
+            secret,
+            key,
+            host: Some(Host::Live),
+            token_store: None,
+            refresh_auth: None,
+        }
+    }
+
     /// Get access token
     pub async fn get_access_token(&self) -> Result<AccessTokenResponse, Error> {
         let url = format!("{}/identity/v2/oauth2/token", self.host.url());
@@ -389,22 +403,6 @@ impl ClientBuilder {
             secret: None,
             key: None,
             host: None,
-            token_store: None,
-            refresh_auth: None,
-        }
-    }
-
-    /// read id, secret and key from environment varialbles
-    pub fn from_env() -> Self {
-        let id = Some(std::env::var("INVESTEC_CLIENT_ID").expect("INVESTEC_CLIENT_ID"));
-        let secret = Some(std::env::var("INVESTEC_CLIENT_SECRET").expect("INVESTEC_CLIENT_SECRET"));
-        let key = Some(std::env::var("INVESTEC_API_KEY").expect("INVESTEC_API_KEY"));
-
-        Self {
-            id,
-            secret,
-            key,
-            host: Some(Host::Live),
             token_store: None,
             refresh_auth: None,
         }
