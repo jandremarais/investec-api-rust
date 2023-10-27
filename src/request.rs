@@ -112,12 +112,12 @@ impl PaymentBuilder {
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct MultiTransferRequest {
-    pub transfer_list: Vec<TransferRequest>,
+    pub transfer_list: Vec<Transfer>,
     pub profile_id: Option<String>,
 }
 
 impl MultiTransferRequest {
-    pub fn new(transfer_list: Vec<TransferRequest>, profile_id: impl Into<Option<String>>) -> Self {
+    pub fn new(transfer_list: Vec<Transfer>, profile_id: impl Into<Option<String>>) -> Self {
         Self {
             transfer_list,
             profile_id: profile_id.into(),
@@ -127,36 +127,34 @@ impl MultiTransferRequest {
 
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct TransferRequest {
+pub struct Transfer {
     pub beneficiary_account_id: String,
     pub amount: String,
     pub my_reference: String,
     pub their_reference: String,
 }
 
+impl Transfer {
+    pub fn to(account_id: impl Into<String>) -> TransferBuilder {
+        TransferBuilder {
+            beneficiary_account_id: account_id.into(),
+            amount: None,
+            my_reference: None,
+            their_reference: None,
+        }
+    }
+}
+
 pub struct TransferBuilder {
-    pub beneficiary_account_id: Option<String>,
+    pub beneficiary_account_id: String,
     pub amount: Option<f32>,
     pub my_reference: Option<String>,
     pub their_reference: Option<String>,
 }
 
 impl TransferBuilder {
-    pub fn new() -> Self {
-        Self {
-            beneficiary_account_id: None,
-            amount: None,
-            my_reference: None,
-            their_reference: None,
-        }
-    }
-
-    pub fn build(self) -> Result<TransferRequest, Error> {
-        let beneficiary_account_id =
-            self.beneficiary_account_id
-                .ok_or(Error::TransferRequestFieldUndefined {
-                    field: "beneficiary_acocunt_id".to_string(),
-                })?;
+    pub fn build(self) -> Result<Transfer, Error> {
+        let beneficiary_account_id = self.beneficiary_account_id;
         let amount = self
             .amount
             .ok_or(Error::TransferRequestFieldUndefined {
@@ -173,7 +171,7 @@ impl TransferBuilder {
             .ok_or(Error::TransferRequestFieldUndefined {
                 field: "their_reference".to_string(),
             })?;
-        let req = TransferRequest {
+        let req = Transfer {
             beneficiary_account_id,
             amount,
             my_reference,
@@ -182,23 +180,18 @@ impl TransferBuilder {
         Ok(req)
     }
 
-    pub fn beneficiary_account_id(mut self, account_id: &str) -> Self {
-        self.beneficiary_account_id = Some(account_id.to_string());
-        self
-    }
-
     pub fn amount(mut self, amount: f32) -> Self {
         self.amount = Some(amount);
         self
     }
 
-    pub fn my_reference(mut self, reference: &str) -> Self {
-        self.my_reference = Some(reference.to_string());
+    pub fn my_reference(mut self, reference: impl Into<String>) -> Self {
+        self.my_reference = Some(reference.into());
         self
     }
 
-    pub fn their_reference(mut self, reference: &str) -> Self {
-        self.their_reference = Some(reference.to_string());
+    pub fn their_reference(mut self, reference: impl Into<String>) -> Self {
+        self.their_reference = Some(reference.into());
         self
     }
 }

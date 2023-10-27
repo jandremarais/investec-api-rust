@@ -4,7 +4,7 @@ use chrono::NaiveDate;
 use reqwest::Method;
 
 use crate::{
-    request::{MultiTransferRequest, MutliPaymentRequest, Payment, TransferRequest},
+    request::{MultiTransferRequest, MutliPaymentRequest, Payment, Transfer},
     response::{
         Account, AccountBalance, Accounts, Beneficiary, BeneficiaryCategory, MultiPaymentResponse,
         MultiTransferResponse, Profile, Response, SinglePaymentResponse, SingleTransferResponse,
@@ -284,7 +284,7 @@ impl Client {
     pub async fn transfer_single(
         &mut self,
         account_id: impl Into<String>,
-        request: TransferRequest,
+        request: Transfer,
         profile_id: impl Into<Option<String>>,
     ) -> Result<SingleTransferResponse, Error> {
         let req = MultiTransferRequest::new(vec![request], profile_id.into());

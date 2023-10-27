@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 
 use crate::{
     client::Client,
-    request::{MultiTransferRequest, MutliPaymentRequest, Payment, TransferBuilder},
+    request::{MultiTransferRequest, MutliPaymentRequest, Payment, Transfer},
     response::TransactionType,
 };
 
@@ -147,15 +147,13 @@ async fn test_get_beneficiaries() {
 #[tokio::test]
 async fn test_transfer_multiple() {
     let mut client = Client::sandbox();
-    let transfer1 = TransferBuilder::new()
-        .beneficiary_account_id(SANDBOX_ACCOUNT)
+    let transfer1 = Transfer::to(SANDBOX_ACCOUNT)
         .amount(10.0)
         .my_reference("test")
         .their_reference("test theirs")
         .build()
         .unwrap();
-    let transfer2 = TransferBuilder::new()
-        .beneficiary_account_id(SANDBOX_ACCOUNT)
+    let transfer2 = Transfer::to(SANDBOX_ACCOUNT)
         .amount(1.0)
         .my_reference("test2")
         .their_reference("test2 theirs")
@@ -171,8 +169,7 @@ async fn test_transfer_single() {
     // wait 2 seconds to avoid hitting burst limits
     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
     let mut client = Client::sandbox();
-    let transfer = TransferBuilder::new()
-        .beneficiary_account_id(SANDBOX_ACCOUNT)
+    let transfer = Transfer::to(SANDBOX_ACCOUNT)
         .amount(10.0)
         .my_reference("test")
         .their_reference("test theirs")
