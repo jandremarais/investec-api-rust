@@ -1,8 +1,6 @@
 use chrono::NaiveDate;
 
-use crate::client::{
-    Beneficiary, Client, MultiTransferRequest, TransactionType, TransferBuilder, TransferRequest,
-};
+use crate::client::{Client, MultiTransferRequest, TransactionType, TransferBuilder};
 
 #[tokio::test]
 async fn test_get_access_token() {
@@ -76,6 +74,17 @@ async fn test_get_account_transactions() {
         assert!(t.transaction_date <= to_date.unwrap());
         assert!(t.transaction_date >= from_date.unwrap());
     }
+}
+
+#[tokio::test]
+async fn test_get_account_transactions_no_params() {
+    let mut client = Client::sandbox();
+    let transactions = client
+        .get_account_transactions(SANDBOX_ACCOUNT, None, None, None)
+        .await;
+    assert!(transactions.is_ok());
+    let transactions = transactions.unwrap();
+    assert!(transactions.data.transactions.len() > 0);
 }
 
 #[tokio::test]

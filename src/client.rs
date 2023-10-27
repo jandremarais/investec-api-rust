@@ -410,6 +410,7 @@ impl TransferBuilder {
     }
 }
 
+// TODO!: determine if the correct fields are optional
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Beneficiary {
