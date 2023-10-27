@@ -7,8 +7,8 @@ use crate::{
     request::{MultiTransferRequest, MutliPaymentRequest, Payment, TransferRequest},
     response::{
         Account, AccountBalance, Accounts, Beneficiary, BeneficiaryCategory, MultiPaymentResponse,
-        MultiTransferResonse, Profile, Response, SinglePaymentResponse, TransactionType,
-        Transactions,
+        MultiTransferResponse, Profile, Response, SinglePaymentResponse, SingleTransferResponse,
+        TransactionType, Transactions,
     },
     token::{AccessToken, AccessTokenResponse, FileStore, TokenStore},
     Error,
@@ -263,7 +263,7 @@ impl Client {
         &mut self,
         account_id: impl Into<String>,
         transfer_list: MultiTransferRequest,
-    ) -> Result<Response<MultiTransferResonse>, Error> {
+    ) -> Result<Response<MultiTransferResponse>, Error> {
         let url = format!(
             "{}/za/pb/v1/accounts/{}/transfermultiple",
             self.host.url(),
@@ -286,9 +286,15 @@ impl Client {
         account_id: impl Into<String>,
         request: TransferRequest,
         profile_id: impl Into<Option<String>>,
-    ) -> Result<Response<MultiTransferResonse>, Error> {
+    ) -> Result<SingleTransferResponse, Error> {
         let req = MultiTransferRequest::new(vec![request], profile_id.into());
-        self.transfer_multiple(account_id, req).await
+        let multi = self.transfer_multiple(account_id, req).await?;
+        let transfer_response = multi.data.transfer_responses.into_iter().next().unwrap();
+        let data = SingleTransferResponse {
+            error_message: multi.data.error_message,
+            transfer_response,
+        };
+        Ok(data)
     }
 
     pub async fn get_beneficiary_categories(

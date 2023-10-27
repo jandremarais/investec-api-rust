@@ -38,9 +38,16 @@ pub struct BeneficiaryCategory {
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
-pub struct MultiTransferResonse {
+pub struct MultiTransferResponse {
     pub error_message: Option<String>,
     pub transfer_responses: Vec<TransferResponse>,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+pub struct SingleTransferResponse {
+    pub error_message: Option<String>,
+    pub transfer_response: TransferResponse,
 }
 
 #[derive(Deserialize, Debug)]
